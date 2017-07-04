@@ -1,0 +1,78 @@
+﻿https://www.thethingsnetwork.org/docs/network/cli/api.html
+
+QUICK REGISTER DEVICE
+./ttnctl user login [network key from https://console.thethingsnetwork.org]
+// register the application in https://console.thethingsnetwork.org to local broker
+./ttnctl applications register
+PASSWORD da_ttnttn
+./ttnctl applications add local-ttn-application "local test app description"
+./ttnctl applications list
+./ttnctl applications select local-ttn-application
+>> APPEUI is 70B3D57EF0005E60
+./ttnctl applications register
+./ttnctl devices register [device id (any name)]
+./ttnctl devices register first-device
+
+/// DEVELOPMENT board
+./ttnctl devices register development-board
+./ttnctl devices personalize [device id] [NwkSKey] [AppSKey]
+./ttnctl devices personalize development-board 2718CC02AD96A7419A68B20E776648E4 23A375270A3D9A1D23F2FA028B193A0C
+./ttnctl devices set development-board --dev-addr A94E3660 --override
+./ttnctl devices set development-board --disable-fcnt-check
+//UPLINK MESSAGE -- DOES NOT WORK DUE TO DevAddress out of TTN 26000000/20
+./ttnctl devices simulate development-board 12
+//// GPS device
+./ttnctl devices register gps-device
+./ttnctl devices personalize gps-device DCDE7EA0FBC82642A2F16843E0ED65C0 184775B7DB0E09E2C014CA115267FB47
+./ttnctl devices set gps-device --dev-addr 260003C9 --override
+./ttnctl devices set gps-device --disable-fcnt-check
+//UPLINK MESSAGE
+./ttnctl devices simulate gps-device 12
+
+
+
+./ttnctl devices register gps-device2
+./ttnctl devices personalize gps-device2
+./ttnctl devices set gps-device2 --disable-fcnt-check
+./ttnctl devices info gps-device2
+
+
+// Gateway
+./ttnctl gateways register [GatewayID] [FrequencyPlan] [Location]
+./ttnctl gateways register eui-a84041168f24ffff Australia 52.37403,4.88968
+./ttnctl gateways register eui-a84041168f24ffff AU_915_928 52.37403,4.88968
+
+
+
+/// TEST SIMULATION DEVICE
+ ./ttnctl devices personalize my-device 1B7501F9316D5B832B5D2744814B967B A30304B6A975775ACF293816E6994B71
+this has automaticwelly assigned DevAddress=26000902
+// UPLINK MESSAGE
+./ttnctl uplink 26000902 1B7501F9316D5B832B5D2744814B967B A30304B6A975775ACF293816E6994B71 0 12
+
+
+TTNCTL quick start
+https://www.thethingsnetwork.org/docs/network/cli/quick-start.html#device-management 
+
+subscribe 
+./ttnctl subscribe
+
+
+downlink
+ttnctl downlink [DevID] [Payload]
+ttnctl downlink my-device 010203
+
+$ttnctl applications
+User name MQTT = AppEUI = EUI 70B3D57ED0000185 
+PAssword MQTT = Access key vjGkwZGzSGSkhzMawoXv59f84oGjeYHX0mBbC1c7Yq0=
+mqtt topic = +/devices/+/up
+
+
+TODO CONNECTING GATEWAY 
+ssh root@192.168.100.101
+admin01
+cd /mnt/fsuser-1/demo_gps_loramote/
+Gateway address
+AA555A000806045C
+
+

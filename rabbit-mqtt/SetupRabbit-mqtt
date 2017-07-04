@@ -1,0 +1,24 @@
+// install rabbit-mq server
+sudo apt-get install rabbitmq-server
+
+// install manager plugin
+rabbitmq-plugins enable rabbitmq_management
+
+// install mqtt plugin
+rabbitmq-plugins enable rabbitmq_mqtt
+
+// set up ttn topic
+http://localhost:15672/#/exchanges  (username,password: guest,guest)
+create a ttn.handler exchange 
+name=ttn.handler type=topic auto_delete=false durable=true.
+
+// set up configuration
+https://www.rabbitmq.com/access-control.html
+in order to connect to your mqtt from external host add the following configuration (create the file if it does not exist)
+sudo nano /etc/rabbitmq/rabbitmq.config
+ content !! WARNING do not miss the "." at the end
+
+[{rabbit, [{loopback_users, []}]}].
+
+
+// use some mqtt client to connect to ttn without user name password

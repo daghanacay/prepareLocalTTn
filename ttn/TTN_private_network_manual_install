@@ -1,0 +1,164 @@
+UTILITY
+https://www.thethingsnetwork.org/article/setting-up-a-private-routing-environment
+
+// Download the  ttn servers (32bit or 64bit) 
+ttn, lora-gateway-bridge
+// create consfiguration for the discovery server under '~/ttn/discovery/ttn.yml'
+***** discovery server config  *****
+id: mynetwork-discovery
+tls: true
+key-dir: discovery/
+auth-servers:
+  ttn-account-v2: "https://account.thethingsnetwork.org"
+  local: "file://discovery/server.pub"
+
+discovery:
+  master-auth-servers:
+  - ttn-account-v2
+  - local
+// create configuration for private server WARNIN TTN below are the excutable that you extract from your downloads such as ttn-linux-amd-64. Rename it to 'ttn' and make it executable 'chmod +x ttn'
+./ttn discovery gen-keypair --config ./discovery/ttn.yml
+// create server certificate
+./ttn discovery gen-cert localhost --config ./discovery/ttn.yml
+// run the ttn discovery server
+./ttn discovery --config ./discovery/ttn.yml
+// NOW WE NEED TO CREATE A SECURITY TOKEN FOR ROUTER, BORKER AND HANDLER. We will start with router
+// SET UP ROUTER
+./ttn discovery authorize router mynetwork-router --config ./discovery/ttn.yml
+// the output e.g. the generated token will go inside the 'router/ttn.yml' with the rest of the configuration defined in the web page
+***** router config *****
+id: mynetwork-router
+tls: true
+key-dir: router/
+auth-servers:
+  ttn-account-v2: "https://account.thethingsnetwork.org"
+
+discovery-address: "localhost:1900"
+auth-token: THE DISCOVERY ACCESS TOKEN THAT YOU GENERATED FOR THE **ROUTER**
+
+router:
+  server-address-announce: localhost
+  skip-verify-gateway-token: true
+// now create public and private keys for router server
+./ttn router gen-keypair --config ./router/ttn.yml
+./ttn router gen-cert --config ./router/ttn.yml 
+The TLS certificate we generated for the discovery server is not trusted by the operating system, so we have to manually trust it. To do so, we can append it to a ca.cert file in the router directory:
+//now start the router
+ttn router --config ./router/ttn.yml 
+// SET UP NETWORK SERVER
+// create a configuration file ./networkserver/ttn.yml and add the configuration defined in the web page
+***** networkserver config  *****
+id: mynetwork-networkserver
+tls: true
+key-dir: networkserver/
+auth-servers:
+  ttn-account-v2: "https://account.thethingsnetwork.org"
+// create TLS keys and certificates
+./ttn networkserver gen-keypair --config ./networkserver/ttn.yml
+./ttn networkserver gen-cert --config ./networkserver/ttn.yml
+
+// SET UP BROKER
+//Brokers authenticate with the NetworkServer using access tokens. You can create an access token with the following command:
+./ttn networkserver authorize mynetwork-broker --config ./networkserver/ttn.yml
+// Broker authenticate with discovery server with autherization key 
+./ttn discovery authorize broker mynetwork-broker --config ./discovery/ttn.yml
+// create a broker configuration with the output of authorization key in ./broker/ttn.yml
+****** broker configuration  ******
+id: mynetwork-broker
+tls: true
+key-dir: broker/
+auth-servers:
+  ttn-account-v2: "https://account.thethingsnetwork.org"
+
+discovery-address: "localhost:1900"
+auth-token: THE DISCOVERY ACCESS TOKEN THAT YOU GENERATED FOR THE **BROKER**
+
+broker:
+  server-address-announce: localhost
+  networkserver-cert: broker/networkserver.cert
+  networkserver-token: THE NETWORKSERVER ACCESS TOKEN THAT YOU GENERATED    
+
+// Now we need to create keys and certificates for the broker
+./ttn broker gen-keypair --config ./broker/ttn.yml
+./ttn broker gen-cert --config ./broker/ttn.yml
+
+// Now we needo to make the broker trust discovery server and the netweork server by copying their certs into the broker folder
+cat discovery/server.cert > broker/ca.cert
+cp networkserver/server.cert broker/networkserver.cert
+
+//VERY IMPORTANT!!! Now we will tell the discovery server which DevAddr prefix we will handle with this Broker. In this case, we use a prefix that TTN reserved for private networks: 26000000/20. This prefix allows you to issue 4096 distinct addresses to devices in your private network, which should be
+
+./ttn broker register-prefix 26000000/20 --config ./broker/ttn.yml
+
+// SET UP HANDLER
+// create an autherntication key for the handler and replace the auth aprt in the config
+./ttn discovery authorize handler mynetwork-handler --config ./discovery/ttn.yml
+// create a configuration in ./handler/ttn.yml
+******* handler set up *************
+id: mynetwork-handler
+tls: true
+key-dir: handler/
+auth-servers:
+  ttn-account-v2: "https://account.thethingsnetwork.org"
+
+discovery-address: "localhost:1900"
+auth-token: THE DISCOVERY ACCESS TOKEN THAT YOU GENERATED FOR THE **HANDLER**
+
+handler:
+  server-address-announce: localhost
+  broker-id: mynetwork-broker
+  mqtt-address: localhost:1883
+
+// Create public/private keys and certificates for the handler
+./ttn handler gen-keypair --config ./handler/ttn.yml
+./ttn handler gen-cert --config ./handler/ttn.yml
+// And copy the discovery server certificate
+cat discovery/server.cert > handler/ca.cert
+
+// Set up BRIDGE
+//create a folder ./bridge and copy the server certificate in it 
+cat discovery/server.cert > bridge/ca.cert
+// rename the lora geteway bridge linux 64 to lora-gateway-bridge and make it executable
+chmod +x lora-gateway-bridge
+// run the bridge
+lora-gateway-bridge --ttn-discovery-server "localhost:1900" --root-ca-file "bridge/ca.cert" --ttn-router "mynetwork-router"
+
+// SET UP TTNCTL
+https://www.thethingsnetwork.org/docs/network/cli/quick-start.html
+//download the zip file, rename to ttnctl and make it executable
+//create a configuration for ttnctl in ~/.ttnctl.yml as follows
+********* ttnctl configuration ******
+debug: true
+discovery-address: localhost:1900
+auth-server: https://account.thethingsnetwork.org
+router-id: mynetwork-router
+handler-id: mynetwork-handler
+mqtt-address: localhost:1883
+
+// Also copy the discovery server certificate for ttnctl to trust the discovery server at ~/.ttnctl/
+cat discovery/server.cert > ~/.ttnctl/ca.cert
+// follow instructions at https://www.thethingsnetwork.org/docs/network/cli/quick-start.html    
+// you can now see the usage of TTN in TTN_HELP file 
+
+
+
+RUN EVERYTHING
+
+create a bash script called runTTN with the following content and then make it executable
+
+#!/bin/bash
+./ttn discovery --config discovery/ttn.yml &
+./ttn router --config router/ttn.yml &
+./ttn networkserver --config networkserver/ttn.yml &
+./ttn broker --config broker/ttn.yml &
+./ttn handler --config handler/ttn.yml &
+./lora-gateway-bridge --ttn-discovery-server "localhost:1900" --root-ca-file "bridge/ca.cert" --ttn-router "mynetwork-router" &
+
+STOP EVERYTHING
+
+create a bash script called stopTTN with the following content and then make it executable
+
+#!/bin/bash
+kill $(ps aux | grep '[t]tn' | awk '{print $2}')
+
+
