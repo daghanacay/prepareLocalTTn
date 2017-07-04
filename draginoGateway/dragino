@@ -1,0 +1,9 @@
+// lo
+
+load the LoRaWAN_packet_forwarder through Arduino 1.8.2
+
+use ssh connection in Tools-> Port
+
+// 
+
+put gwstat.py to the root directory

@@ -1,0 +1,9 @@
+hallard-arduino-lmic_tree_pi/arduino-lmic-rpi/examples/raspi/ttn-abp/
+
+upload the /pi-tracker
+
+edit the /etc/rc.local
+----------------------------
+sudo python /home/pi/pi-tracker/app.py &
+
+ 
